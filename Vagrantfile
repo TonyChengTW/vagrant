@@ -7,27 +7,27 @@ Vagrant.configure("2") do |config|
     libvirt.storage_pool_name = "default"
     libvirt.nested = true
   end
-  # Ubuntu 1
-  config.vm.define :ubuntu1 do |ubuntu|
-    ubuntu.vm.box = "trusty64"
-    #ubuntu.vm.network :public_network, ip: '192.168.48.193', :dev => "br0", :mode => 'bridge'
-    ubuntu.vm.network :private_network, :ip => "192.168.1.178"
-    ubuntu.vm.provider :libvirt do |domain|
-      domain.memory = 1024
-      domain.cpus = 2
+  # CentOS 7
+  config.vm.define :devstack1 do |centos7|
+    centos7.vm.box = "centos/7"
+    centos7.vm.network :public_network,
+                                ip: '192.168.120.3',
+                                :netmask => "255.255.252.0",
+                                :gateway => "192.168.120.254",
+                                :mac => '52:54:00:ed:bf:53',
+                                :dev => "br0",
+                                :type => 'bridge',
+                                :mode => 'bridge'
+
+    centos7.vm.provider :libvirt do |domain|
+      domain.memory = 16384
+      domain.cpus = 16
+      domain.management_network_name = 'vagrant-libvirt-mgmt'
+      domain.management_network_address = '172.20.178.0/24'
+      domain.management_network_mode = 'nat'
     end
-    #ubuntu.vm.provision :shell, path: "bootstrap.sh", args: "42", keep_color: true
-  end
-  # PXE
-  config.vm.define :pxeclient1 do |pxeclient|
-    pxeclient.vm.box = "trusty64"
-    #pxeclient.vm.network :public_network, ip: '192.168.48.193', :dev => "br0", :mode => 'bridge'
-    pxeclient.vm.provider :libvirt do |domain|
-      domain.memory = 1024
-      domain.cpus = 4
-      domain.boot 'network'
-      #domain.boot 'hd'
-    end
-    #pxe.vm.provision :shell, path: "bootstrap.sh", args: "42", keep_color: true
+    centos7.vm.provision :shell, run: "always", inline: "yum -y install net-tools"
+    centos7.vm.provision :shell, run: "always", inline: "ifup eth1"
+    centos7.vm.provision :shell, run: "always", inline: "eval `route -n|awk '{ if ($8 ==\"eth0\" && $2 != \"0.0.0.0\") print \"route del default gw \" $2; }'`"
   end
 end
